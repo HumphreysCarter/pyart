@@ -6,6 +6,7 @@ for drawing maps.
 
 import warnings
 
+import pint
 import numpy as np
 import matplotlib.pyplot as plt
 try:
@@ -107,7 +108,7 @@ class RadarMapDisplay(RadarDisplay):
     def plot_ppi_map(
             self, field, sweep=0, mask_tuple=None,
             vmin=None, vmax=None, cmap=None, norm=None, mask_outside=False,
-            title=None, title_flag=True,
+            in_units=None, out_units=None, title=None, title_flag=True,
             colorbar_flag=True, colorbar_label=None, ax=None, fig=None,
             lat_lines=None, lon_lines=None, projection=None,
             min_lon=None, max_lon=None, min_lat=None, max_lat=None,
@@ -148,6 +149,10 @@ class RadarMapDisplay(RadarDisplay):
         mask_outside : bool
             True to mask data outside of vmin, vmax. False performs no
             masking.
+        in_units : str or None, optional
+            Unit for input data. None performs no unit conversion.
+        out_units : str or None, optional
+            Unit for output data. None performs no unit conversion.
         title : str
             Title to label plot with, None to use default title generated from
             the field and tilt parameters. Parameter is ignored if title_flag
@@ -240,6 +245,17 @@ class RadarMapDisplay(RadarDisplay):
         data = self._get_data(
             field, sweep, mask_tuple, filter_transitions, gatefilter)
         x, y = self._get_x_y(sweep, edges, filter_transitions)
+
+        # unit conversions
+        if in_units is not None and out_units is not None and in_units is not out_units:
+            # get pint unit registry
+            unit_reg = pint.UnitRegistry()
+
+            # assign units to input data
+            data = unit_reg.Quantity(data, in_units)
+
+            # convert to desired output units
+            data = data.to(unit_reg(out_units))
 
         # mask the data where outside the limits
         if mask_outside:
